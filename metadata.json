@@ -1,0 +1,6 @@
+{
+  "name": "함께 빛나는 어울림 - 경품 추첨",
+  "description": "수원시장애인종합복지관 가족 송년의 밤 '함께 빛나는 어울림' 행사 경품 추첨 프로그램",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

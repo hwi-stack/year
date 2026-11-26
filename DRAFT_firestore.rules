@@ -1,0 +1,210 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: deny all by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isVerified() && (
+        request.auth.token.email == 'hwi@suwonrehab.or.kr' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidRaffleEvent(data) {
+      return data.keys().hasAll([
+        'ownerId', 'title', 'minNumber', 'maxNumber', 'excludedNumbers', 'createdAt', 'updatedAt'
+      ])
+      && data.keys().hasOnly([
+        'ownerId', 'title', 'minNumber', 'maxNumber', 'excludedNumbers', 'createdAt', 'updatedAt'
+      ])
+      && isValidId(data.ownerId)
+      && (data.ownerId == request.auth.uid || isAdmin())
+      && data.title is string && data.title.size() >= 1 && data.title.size() <= 120
+      && data.minNumber is int && data.minNumber >= 1 && data.minNumber <= 9999
+      && data.maxNumber is int && data.maxNumber >= data.minNumber && data.maxNumber <= 9999
+      && (data.maxNumber - data.minNumber) <= 2000
+      && data.excludedNumbers is list && data.excludedNumbers.size() <= 2000
+      && (data.excludedNumbers.size() == 0 || data.excludedNumbers[0] is int)
+      && data.createdAt is timestamp
+      && data.updatedAt is timestamp;
+    }
+
+    function isValidWinnerSlot(data) {
+      return data.keys().hasAll([
+        'id', 'slotId', 'menuId', 'menuTitle', 'prizeName', 'slotLabel',
+        'ticketNumber', 'drawnAt', 'isRedraw', 'ownerId', 'updatedAt'
+      ])
+      && data.keys().hasOnly([
+        'id', 'slotId', 'menuId', 'menuTitle', 'prizeName', 'slotLabel',
+        'ticketNumber', 'drawnAt', 'isRedraw', 'ownerId', 'updatedAt'
+      ])
+      && isValidId(data.id)
+      && isValidId(data.slotId)
+      && data.menuId in ['combo', 'necessities_1', 'necessities_2', 'voucher']
+      && data.menuTitle is string && data.menuTitle.size() >= 1 && data.menuTitle.size() <= 80
+      && data.prizeName is string && data.prizeName.size() >= 1 && data.prizeName.size() <= 80
+      && data.slotLabel is string && data.slotLabel.size() >= 1 && data.slotLabel.size() <= 80
+      && data.ticketNumber is int && data.ticketNumber >= 1 && data.ticketNumber <= 9999
+      && data.drawnAt is string && data.drawnAt.size() >= 1 && data.drawnAt.size() <= 64
+      && data.isRedraw is bool
+      && isValidId(data.ownerId)
+      && (data.ownerId == request.auth.uid || isAdmin())
+      && data.updatedAt is timestamp;
+    }
+
+    function isValidHistoryRecord(data) {
+      return data.keys().hasAll([
+        'id', 'slotId', 'menuId', 'menuTitle', 'prizeName', 'slotLabel',
+        'ticketNumber', 'drawnAt', 'isRedraw', 'status', 'ownerId', 'createdAt'
+      ])
+      && data.keys().hasOnly([
+        'id', 'slotId', 'menuId', 'menuTitle', 'prizeName', 'slotLabel',
+        'ticketNumber', 'drawnAt', 'isRedraw', 'status', 'ownerId', 'createdAt'
+      ])
+      && isValidId(data.id)
+      && isValidId(data.slotId)
+      && data.menuId in ['combo', 'necessities_1', 'necessities_2', 'voucher']
+      && data.menuTitle is string && data.menuTitle.size() >= 1 && data.menuTitle.size() <= 80
+      && data.prizeName is string && data.prizeName.size() >= 1 && data.prizeName.size() <= 80
+      && data.slotLabel is string && data.slotLabel.size() >= 1 && data.slotLabel.size() <= 80
+      && data.ticketNumber is int && data.ticketNumber >= 1 && data.ticketNumber <= 9999
+      && data.drawnAt is string && data.drawnAt.size() >= 1 && data.drawnAt.size() <= 64
+      && data.isRedraw is bool
+      && data.status in ['active', 'replaced', 'cancelled']
+      && isValidId(data.ownerId)
+      && (data.ownerId == request.auth.uid || isAdmin())
+      && data.createdAt is timestamp;
+    }
+
+    function isEventOwner(eventId) {
+      return isAdmin() || (
+        exists(/databases/$(database)/documents/events/$(eventId)) &&
+        get(/databases/$(database)/documents/events/$(eventId)).data.ownerId == request.auth.uid
+      );
+    }
+
+    // Connection validation document (read-only ping)
+    match /test/connection {
+      allow get: if isVerified();
+    }
+
+    // Admin lookup collection (read own record only; writes reserved for console)
+    match /admins/{userId} {
+      allow get: if isVerified() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+      allow write: if false;
+    }
+
+    // Raffle events
+    match /events/{eventId} {
+      allow get: if isVerified() && isValidId(eventId) && (resource == null || existing().ownerId == request.auth.uid || isAdmin());
+      allow list: if isVerified() && (existing().ownerId == request.auth.uid || isAdmin());
+
+      allow create: if isVerified()
+        && isValidId(eventId)
+        && isValidRaffleEvent(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerified()
+        && isValidId(eventId)
+        && isValidRaffleEvent(incoming())
+        && (existing().ownerId == request.auth.uid || isAdmin())
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'title', 'minNumber', 'maxNumber', 'excludedNumbers', 'updatedAt'
+        ]);
+
+      allow delete: if isAdmin() && isValidId(eventId);
+
+      // Active winners subcollection
+      match /winners/{slotId} {
+        allow get: if isVerified() && isValidId(eventId) && isValidId(slotId) && (existing().ownerId == request.auth.uid || isAdmin());
+        allow list: if isVerified() && (existing().ownerId == request.auth.uid || isAdmin());
+
+        allow create: if isVerified()
+          && isValidId(eventId)
+          && isValidId(slotId)
+          && isValidWinnerSlot(incoming())
+          && incoming().slotId == slotId
+          && incoming().updatedAt == request.time
+          && isEventOwner(eventId);
+
+        allow update: if isVerified()
+          && isValidId(eventId)
+          && isValidId(slotId)
+          && isValidWinnerSlot(incoming())
+          && incoming().slotId == slotId
+          && incoming().ownerId == existing().ownerId
+          && incoming().updatedAt == request.time
+          && isEventOwner(eventId)
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'id', 'ticketNumber', 'drawnAt', 'isRedraw', 'updatedAt'
+          ]);
+
+        allow delete: if isVerified()
+          && isValidId(eventId)
+          && isValidId(slotId)
+          && (existing().ownerId == request.auth.uid || isAdmin())
+          && isEventOwner(eventId);
+      }
+
+      // Audit history subcollection
+      match /history/{entryId} {
+        allow get: if isVerified() && isValidId(eventId) && isValidId(entryId) && (existing().ownerId == request.auth.uid || isAdmin());
+        allow list: if isVerified() && (existing().ownerId == request.auth.uid || isAdmin());
+
+        allow create: if isVerified()
+          && isValidId(eventId)
+          && isValidId(entryId)
+          && isValidHistoryRecord(incoming())
+          && incoming().id == entryId
+          && incoming().createdAt == request.time
+          && isEventOwner(eventId);
+
+        allow update: if isVerified()
+          && isValidId(eventId)
+          && isValidId(entryId)
+          && isValidHistoryRecord(incoming())
+          && (existing().ownerId == request.auth.uid || isAdmin())
+          && incoming().id == existing().id
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && (existing().status == 'active' || isAdmin())
+          && incoming().diff(existing()).affectedKeys().hasOnly(['status'])
+          && isEventOwner(eventId);
+
+        allow delete: if isVerified()
+          && isValidId(eventId)
+          && isValidId(entryId)
+          && (existing().ownerId == request.auth.uid || isAdmin())
+          && isEventOwner(eventId);
+      }
+    }
+  }
+}

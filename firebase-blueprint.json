@@ -1,0 +1,212 @@
+{
+  "entities": {
+    "RaffleEvent": {
+      "title": "RaffleEvent",
+      "description": "Configuration and participant number range for a raffle event",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID of the event owner"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Event display title"
+        },
+        "minNumber": {
+          "type": "integer",
+          "description": "Minimum participant ticket number"
+        },
+        "maxNumber": {
+          "type": "integer",
+          "description": "Maximum participant ticket number"
+        },
+        "excludedNumbers": {
+          "type": "array",
+          "description": "Excluded or absent ticket numbers"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server last update timestamp"
+        }
+      },
+      "required": [
+        "ownerId",
+        "title",
+        "minNumber",
+        "maxNumber",
+        "excludedNumbers",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "WinnerSlot": {
+      "title": "WinnerSlot",
+      "description": "Active winning ticket assignment for a prize slot",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "slotId": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "menuId": {
+          "type": "string",
+          "enum": ["combo", "necessities_1", "necessities_2", "voucher"],
+          "maxLength": 32
+        },
+        "menuTitle": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "prizeName": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "slotLabel": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "ticketNumber": {
+          "type": "integer"
+        },
+        "drawnAt": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "isRedraw": {
+          "type": "boolean"
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "slotId",
+        "menuId",
+        "menuTitle",
+        "prizeName",
+        "slotLabel",
+        "ticketNumber",
+        "drawnAt",
+        "isRedraw",
+        "ownerId",
+        "updatedAt"
+      ]
+    },
+    "HistoryRecord": {
+      "title": "HistoryRecord",
+      "description": "Immutable audit log entry for drawn, replaced, or cancelled tickets",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "slotId": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "menuId": {
+          "type": "string",
+          "enum": ["combo", "necessities_1", "necessities_2", "voucher"],
+          "maxLength": 32
+        },
+        "menuTitle": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "prizeName": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "slotLabel": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "ticketNumber": {
+          "type": "integer"
+        },
+        "drawnAt": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "isRedraw": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "replaced", "cancelled"],
+          "maxLength": 20
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "slotId",
+        "menuId",
+        "menuTitle",
+        "prizeName",
+        "slotLabel",
+        "ticketNumber",
+        "drawnAt",
+        "isRedraw",
+        "status",
+        "ownerId",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/events/{eventId}": {
+      "schema": {
+        "$ref": "#/entities/RaffleEvent"
+      },
+      "description": "Raffle event configuration and participant number range"
+    },
+    "/events/{eventId}/winners/{slotId}": {
+      "schema": {
+        "$ref": "#/entities/WinnerSlot"
+      },
+      "description": "Current active winning ticket per prize slot"
+    },
+    "/events/{eventId}/history/{entryId}": {
+      "schema": {
+        "$ref": "#/entities/HistoryRecord"
+      },
+      "description": "Audit log of all draws, redraws, and cancellations"
+    }
+  }
+}
