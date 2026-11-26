@@ -27,101 +27,152 @@ function createNoiseBuffer(ctx: AudioContext, durationSec: number): AudioBuffer 
   return buffer;
 }
 
-function scheduleSingleFirework(
-  ctx: AudioContext,
-  startOffsetSec: number,
-  intensity = 1
-): void {
-  const start = ctx.currentTime + startOffsetSec;
+/** Crisp ascending bell chime when each digit (ones -> tens) snaps into place */
+export function playDigitRevealSound(step: number, enabled: boolean): void {
+  if (!enabled) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
 
-  // 1. Brief ascending firework launch whistle
-  const whistle = ctx.createOscillator();
-  const whistleGain = ctx.createGain();
-  whistle.type = 'sine';
-  whistle.frequency.setValueAtTime(340, start);
-  whistle.frequency.exponentialRampToValueAtTime(1050, start + 0.14);
+  const now = ctx.currentTime;
+  // Ascending bright pitches for step 1 (ones) -> step 2 (tens) -> step 3+
+  const pitches = [783.99, 987.77, 1174.66]; // G5 -> B5 -> D6
+  const freq = pitches[Math.min(Math.max(step - 1, 0), pitches.length - 1)];
 
-  whistleGain.gain.setValueAtTime(0.001, start);
-  whistleGain.gain.exponentialRampToValueAtTime(0.04 * intensity, start + 0.04);
-  whistleGain.gain.exponentialRampToValueAtTime(0.001, start + 0.15);
+  // Crisp bell fundamental
+  const osc1 = ctx.createOscillator();
+  const gain1 = ctx.createGain();
+  osc1.type = 'triangle';
+  osc1.frequency.setValueAtTime(freq, now);
 
-  whistle.connect(whistleGain);
-  whistleGain.connect(ctx.destination);
-  whistle.start(start);
-  whistle.stop(start + 0.16);
+  gain1.gain.setValueAtTime(0.001, now);
+  gain1.gain.exponentialRampToValueAtTime(0.22, now + 0.012);
+  gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
 
-  // 2. Punchy burst pop ("펑!")
-  const burstStart = start + 0.13;
-  const thump = ctx.createOscillator();
-  const thumpGain = ctx.createGain();
-  thump.type = 'triangle';
-  thump.frequency.setValueAtTime(170, burstStart);
-  thump.frequency.exponentialRampToValueAtTime(42, burstStart + 0.18);
+  osc1.connect(gain1);
+  gain1.connect(ctx.destination);
+  osc1.start(now);
+  osc1.stop(now + 0.44);
 
-  thumpGain.gain.setValueAtTime(0.001, burstStart);
-  thumpGain.gain.exponentialRampToValueAtTime(0.28 * intensity, burstStart + 0.01);
-  thumpGain.gain.exponentialRampToValueAtTime(0.001, burstStart + 0.22);
+  // Bright chime overtone
+  const osc2 = ctx.createOscillator();
+  const gain2 = ctx.createGain();
+  osc2.type = 'sine';
+  osc2.frequency.setValueAtTime(freq * 2, now);
 
-  thump.connect(thumpGain);
-  thumpGain.connect(ctx.destination);
-  thump.start(burstStart);
-  thump.stop(burstStart + 0.24);
+  gain2.gain.setValueAtTime(0.001, now);
+  gain2.gain.exponentialRampToValueAtTime(0.09, now + 0.008);
+  gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
 
-  // 3. Burst air-explosion whoosh (filtered noise)
-  const explosionNoise = ctx.createBufferSource();
-  explosionNoise.buffer = createNoiseBuffer(ctx, 0.55);
-  const expFilter = ctx.createBiquadFilter();
-  expFilter.type = 'bandpass';
-  expFilter.frequency.setValueAtTime(1200, burstStart);
-  expFilter.frequency.exponentialRampToValueAtTime(320, burstStart + 0.45);
-  expFilter.Q.value = 0.9;
-
-  const expGain = ctx.createGain();
-  expGain.gain.setValueAtTime(0.001, burstStart);
-  expGain.gain.exponentialRampToValueAtTime(0.26 * intensity, burstStart + 0.012);
-  expGain.gain.exponentialRampToValueAtTime(0.001, burstStart + 0.5);
-
-  explosionNoise.connect(expFilter);
-  expFilter.connect(expGain);
-  expGain.connect(ctx.destination);
-  explosionNoise.start(burstStart);
-  explosionNoise.stop(burstStart + 0.52);
-
-  // 4. Crisp sparkling crackle pops ("타다닥!")
-  const crackleCount = 8;
-  for (let i = 0; i < crackleCount; i += 1) {
-    const crackleTime = burstStart + 0.08 + i * 0.065 + (i % 2) * 0.02;
-    const crackleSrc = ctx.createBufferSource();
-    crackleSrc.buffer = createNoiseBuffer(ctx, 0.045);
-
-    const hp = ctx.createBiquadFilter();
-    hp.type = 'highpass';
-    hp.frequency.setValueAtTime(2400 + (i % 3) * 700, crackleTime);
-
-    const crackleGain = ctx.createGain();
-    const vol = (0.09 - i * 0.007) * intensity;
-    crackleGain.gain.setValueAtTime(0.001, crackleTime);
-    crackleGain.gain.exponentialRampToValueAtTime(
-      Math.max(0.02, vol),
-      crackleTime + 0.004
-    );
-    crackleGain.gain.exponentialRampToValueAtTime(0.001, crackleTime + 0.04);
-
-    crackleSrc.connect(hp);
-    hp.connect(crackleGain);
-    crackleGain.connect(ctx.destination);
-    crackleSrc.start(crackleTime);
-    crackleSrc.stop(crackleTime + 0.045);
-  }
+  osc2.connect(gain2);
+  gain2.connect(ctx.destination);
+  osc2.start(now);
+  osc2.stop(now + 0.27);
 }
 
-/** Play celebratory firework bursts ("폭죽 소리") when winning numbers finish revealing */
+/**
+ * Short, punchy, festive winter-Christmas stage impact sound (~1.2s):
+ * Bright ascending sparkle arpeggio + warm celebratory chord + crisp firework sparkle pop
+ */
 export function playCelebrationFanfare(enabled: boolean): void {
   if (!enabled) return;
   const ctx = getAudioContext();
   if (!ctx) return;
 
-  scheduleSingleFirework(ctx, 0.0, 1.0);
-  scheduleSingleFirework(ctx, 0.32, 0.85);
-  scheduleSingleFirework(ctx, 0.68, 0.9);
+  const now = ctx.currentTime;
+
+  // 1. Punchy low-end celebratory pop impact
+  const impactOsc = ctx.createOscillator();
+  const impactGain = ctx.createGain();
+  impactOsc.type = 'triangle';
+  impactOsc.frequency.setValueAtTime(190, now);
+  impactOsc.frequency.exponentialRampToValueAtTime(48, now + 0.16);
+
+  impactGain.gain.setValueAtTime(0.001, now);
+  impactGain.gain.exponentialRampToValueAtTime(0.28, now + 0.01);
+  impactGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+  impactOsc.connect(impactGain);
+  impactGain.connect(ctx.destination);
+  impactOsc.start(now);
+  impactOsc.stop(now + 0.22);
+
+  // 2. Short, crisp firework sparkle burst
+  const burstNoise = ctx.createBufferSource();
+  burstNoise.buffer = createNoiseBuffer(ctx, 0.38);
+  const burstFilter = ctx.createBiquadFilter();
+  burstFilter.type = 'bandpass';
+  burstFilter.frequency.setValueAtTime(1800, now);
+  burstFilter.frequency.exponentialRampToValueAtTime(650, now + 0.34);
+  burstFilter.Q.value = 0.8;
+
+  const burstGain = ctx.createGain();
+  burstGain.gain.setValueAtTime(0.001, now);
+  burstGain.gain.exponentialRampToValueAtTime(0.16, now + 0.012);
+  burstGain.gain.exponentialRampToValueAtTime(0.001, now + 0.36);
+
+  burstNoise.connect(burstFilter);
+  burstFilter.connect(burstGain);
+  burstGain.connect(ctx.destination);
+  burstNoise.start(now);
+  burstNoise.stop(now + 0.38);
+
+  // 3. Fast, uplifting 4-note festive fanfare arpeggio landing on a bright Christmas bell chord
+  const fanfareNotes = [
+    { freq: 523.25, offset: 0.0, dur: 0.16 },  // C5
+    { freq: 659.25, offset: 0.07, dur: 0.16 }, // E5
+    { freq: 783.99, offset: 0.14, dur: 0.16 }, // G5
+    { freq: 1046.5, offset: 0.21, dur: 0.85 }, // C6 (bright peak)
+  ];
+
+  fanfareNotes.forEach(({ freq, offset, dur }) => {
+    const start = now + offset;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, start);
+
+    gain.gain.setValueAtTime(0.001, start);
+    gain.gain.exponentialRampToValueAtTime(0.2, start + 0.014);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + dur);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start + dur + 0.02);
+  });
+
+  // 4. Warm ringing festive chord + sleigh-bell sparkle at peak (0.21s)
+  const peakTime = now + 0.21;
+  [523.25, 659.25, 783.99, 1046.5].forEach((freq) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, peakTime);
+
+    gain.gain.setValueAtTime(0.001, peakTime);
+    gain.gain.exponentialRampToValueAtTime(0.075, peakTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, peakTime + 0.92);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(peakTime);
+    osc.stop(peakTime + 0.95);
+  });
+
+  // Crisp sleigh-bell shimmer on peak
+  [2637, 3136, 3951].forEach((freq) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, peakTime);
+
+    gain.gain.setValueAtTime(0.0005, peakTime);
+    gain.gain.exponentialRampToValueAtTime(0.02, peakTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0005, peakTime + 0.25);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(peakTime);
+    osc.stop(peakTime + 0.26);
+  });
 }

@@ -36,7 +36,10 @@ import {
   INITIAL_STATE,
   pickRandomNumbers,
 } from './utils/raffleEngine';
-import { playCelebrationFanfare } from './utils/sound';
+import {
+  playCelebrationFanfare,
+  playDigitRevealSound,
+} from './utils/sound';
 
 const STORAGE_KEY = 'suwon_rehab_raffle_2026_v1';
 
@@ -274,6 +277,8 @@ export default function App() {
             setJustCompletedSlotIds(slotIds);
             setCelebrationTrigger((c) => c + 1);
             playCelebrationFanfare(soundEnabledRef.current);
+          } else {
+            playDigitRevealSound(step, soundEnabledRef.current);
           }
         }, delayMs);
 
