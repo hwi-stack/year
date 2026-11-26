@@ -36,11 +36,7 @@ import {
   INITIAL_STATE,
   pickRandomNumbers,
 } from './utils/raffleEngine';
-import {
-  playCelebrationFanfare,
-  playDigitRevealChime,
-  playSpinTick,
-} from './utils/sound';
+import { playCelebrationFanfare } from './utils/sound';
 
 const STORAGE_KEY = 'suwon_rehab_raffle_2026_v1';
 
@@ -75,7 +71,7 @@ export default function App() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Firebase Auth & Sync state
+  // Firebase Auth & Sync state (kept in background & AdminModal)
   const [authUser, setAuthUser] = useState<User | null>(null);
   const [firebaseConnecting, setFirebaseConnecting] = useState(false);
   const [firebaseError, setFirebaseError] = useState<string | null>(null);
@@ -90,7 +86,6 @@ export default function App() {
   );
 
   const revealTimersRef = useRef<number[]>([]);
-  const spinTickIntervalRef = useRef<number | null>(null);
   const soundEnabledRef = useRef(soundEnabled);
   soundEnabledRef.current = soundEnabled;
 
@@ -232,10 +227,6 @@ export default function App() {
   const clearRevealTimers = useCallback(() => {
     revealTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
     revealTimersRef.current = [];
-    if (spinTickIntervalRef.current !== null) {
-      window.clearInterval(spinTickIntervalRef.current);
-      spinTickIntervalRef.current = null;
-    }
   }, []);
 
   useEffect(() => {
@@ -264,14 +255,10 @@ export default function App() {
         return next;
       });
 
-      // Gentle rhythmic spin tick while numbers are rolling
-      spinTickIntervalRef.current = window.setInterval(() => {
-        playSpinTick(soundEnabledRef.current);
-      }, 135);
-
       const initialSpinMs = 600;
 
       // Step 1 (Ones digit, e.g. '8' in '098') locks in first, then +2s per digit
+      // Firework sound plays only upon completion
       for (let step = 1; step <= digitCount; step += 1) {
         const delayMs = initialSpinMs + (step - 1) * 2000;
         const timerId = window.setTimeout(() => {
@@ -284,15 +271,9 @@ export default function App() {
           });
 
           if (step === digitCount) {
-            if (spinTickIntervalRef.current !== null) {
-              window.clearInterval(spinTickIntervalRef.current);
-              spinTickIntervalRef.current = null;
-            }
             setJustCompletedSlotIds(slotIds);
             setCelebrationTrigger((c) => c + 1);
             playCelebrationFanfare(soundEnabledRef.current);
-          } else {
-            playDigitRevealChime(step, soundEnabledRef.current);
           }
         }, delayMs);
 
@@ -692,11 +673,8 @@ export default function App() {
           isAnyRevealing={isAnyRevealing}
           soundEnabled={soundEnabled}
           isFullscreen={isFullscreen}
-          isFirebaseConnected={isFirebaseConnected}
-          firebaseConnecting={firebaseConnecting}
           onToggleSound={() => setSoundEnabled((prev) => !prev)}
           onToggleFullscreen={handleToggleFullscreen}
-          onConnectFirebase={handleConnectFirebase}
           onStartDrawMenu={handleStartDrawMenu}
           onRedrawSlot={handleRedrawSlot}
           onRedrawSelectedSlots={handleRedrawSelectedSlots}
@@ -709,11 +687,13 @@ export default function App() {
         />
       </div>
 
-      <footer className="relative z-10 border-t border-[#EAE0CE] bg-[#FFFDF9]/80 py-4 px-4 sm:px-8 text-center">
-        <p className="text-xs text-[#786B59]">
-          수원시장애인종합복지관 가족 송년의 밤 · 함께 빛나는 어울림
-        </p>
-      </footer>
+      {!isFullscreen && (
+        <footer className="relative z-10 border-t border-[#EAE0CE] bg-[#FFFDF9]/80 py-2.5 px-4 sm:px-8 text-center">
+          <p className="text-xs text-[#786B59]">
+            수원시장애인종합복지관 가족 송년의 밤 · 함께 빛나는 어울림
+          </p>
+        </footer>
+      )}
 
       <AdminModal
         isOpen={isAdminOpen}

@@ -47,8 +47,8 @@ export const DigitRevealNumber: React.FC<DigitRevealNumberProps> = ({
 
   const boxSizeClass =
     size === 'lg'
-      ? 'w-14 h-20 sm:w-16 sm:h-22 text-4xl sm:text-5xl rounded-xl'
-      : 'w-11 h-16 sm:w-12 sm:h-18 text-3xl sm:text-4xl rounded-xl';
+      ? 'w-13 h-16 sm:w-15 sm:h-18 text-4xl sm:text-5xl rounded-xl'
+      : 'w-11 h-14 sm:w-12 sm:h-15 text-3xl sm:text-4xl rounded-xl';
 
   return (
     <div

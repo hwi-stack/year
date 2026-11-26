@@ -19,7 +19,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 }) => {
   return (
     <header className="sticky top-0 z-30 bg-[#FFFDF9]/95 backdrop-blur-md border-b border-[#E8DFCE]">
-      <div className="max-w-[1360px] mx-auto px-4 sm:px-8 h-16 flex items-center justify-between gap-4 lg:gap-8">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-8 h-14 flex items-center justify-between gap-4 lg:gap-8">
         {/* Zone 1: Single-line event brand wordmark */}
         <button
           type="button"

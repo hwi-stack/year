@@ -3,8 +3,6 @@ import {
   AlertCircle,
   ArrowRight,
   CheckSquare,
-  Cloud,
-  CloudOff,
   Gift,
   Maximize2,
   Minimize2,
@@ -43,11 +41,8 @@ interface DrawStageProps {
   isAnyRevealing: boolean;
   soundEnabled: boolean;
   isFullscreen: boolean;
-  isFirebaseConnected: boolean;
-  firebaseConnecting: boolean;
   onToggleSound: () => void;
   onToggleFullscreen: () => void;
-  onConnectFirebase: () => void;
   onStartDrawMenu: (menu: PrizeMenu) => void;
   onRedrawSlot: (slot: PrizeSlot) => void;
   onRedrawSelectedSlots: (slots: PrizeSlot[]) => void;
@@ -68,11 +63,8 @@ export const DrawStage: React.FC<DrawStageProps> = ({
   isAnyRevealing,
   soundEnabled,
   isFullscreen,
-  isFirebaseConnected,
-  firebaseConnecting,
   onToggleSound,
   onToggleFullscreen,
-  onConnectFirebase,
   onStartDrawMenu,
   onRedrawSlot,
   onRedrawSelectedSlots,
@@ -164,7 +156,7 @@ export const DrawStage: React.FC<DrawStageProps> = ({
     onRedrawSelectedSlots(targetSlots);
   };
 
-  const showCelebrationBanner =
+  const showCelebrationState =
     !isAnyRevealing &&
     hasWinners &&
     menu.slots.some((s) => justCompletedSet.has(s.slotId));
@@ -184,20 +176,20 @@ export const DrawStage: React.FC<DrawStageProps> = ({
       <div
         key={slot.slotId}
         className={`relative flex flex-col justify-between rounded-2xl bg-white transition-all duration-300 ${
-          size === 'lg' ? 'p-6 sm:p-7' : 'p-5'
+          size === 'lg' ? 'p-4 sm:p-5' : 'p-3.5 sm:p-4'
         } ${isJustFinished ? 'animate-winner-glow' : ''} ${
           isSelected
             ? 'border-2 border-[#B91C1C] bg-[#FFF8F6] shadow-[0_8px_24px_-6px_rgba(185,28,28,0.18)]'
             : isSlotComplete
-              ? 'border-2 border-[#D97706]/60 shadow-[0_6px_24px_-6px_rgba(180,83,9,0.13)]'
+              ? 'border-2 border-[#D97706]/60 shadow-[0_6px_20px_-6px_rgba(180,83,9,0.13)]'
               : isSlotRevealing
-                ? 'border-2 border-[#B91C1C]/55 shadow-[0_8px_28px_-6px_rgba(185,28,28,0.16)]'
+                ? 'border-2 border-[#B91C1C]/55 shadow-[0_8px_24px_-6px_rgba(185,28,28,0.16)]'
                 : 'border border-[#E8DFCE] shadow-sm'
         }`}
       >
         {/* Top Row: Checkbox + Prize Name + Redraw Indicator */}
-        <div className="flex items-center justify-between gap-2 mb-4">
-          <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center justify-between gap-2 mb-2.5">
+          <div className="flex items-center gap-2 min-w-0">
             {winner && !isAnyRevealing && (
               <label className="inline-flex items-center cursor-pointer shrink-0">
                 <input
@@ -208,15 +200,15 @@ export const DrawStage: React.FC<DrawStageProps> = ({
                   className="sr-only"
                 />
                 {isSelected ? (
-                  <CheckSquare className="w-5 h-5 text-[#B91C1C]" />
+                  <CheckSquare className="w-4 h-4 sm:w-5 sm:h-5 text-[#B91C1C]" />
                 ) : (
-                  <Square className="w-5 h-5 text-[#B5A792] hover:text-[#786B59] transition-colors" />
+                  <Square className="w-4 h-4 sm:w-5 sm:h-5 text-[#B5A792] hover:text-[#786B59] transition-colors" />
                 )}
               </label>
             )}
             <h3
               className={`font-bold text-[#1F1B16] truncate ${
-                size === 'lg' ? 'text-lg sm:text-xl' : 'text-base'
+                size === 'lg' ? 'text-base sm:text-lg' : 'text-sm sm:text-base'
               }`}
               title={slot.slotLabel}
             >
@@ -232,7 +224,7 @@ export const DrawStage: React.FC<DrawStageProps> = ({
         </div>
 
         {/* Center: Giant Right-to-Left Rolling Digit Reveal */}
-        <div className="py-2 sm:py-3 flex items-center justify-center">
+        <div className="py-1 flex items-center justify-center">
           <DigitRevealNumber
             ticketNumber={winner ? winner.ticketNumber : null}
             maxNumber={config.maxNumber}
@@ -244,8 +236,8 @@ export const DrawStage: React.FC<DrawStageProps> = ({
         </div>
 
         {/* Bottom Row: Individual Redraw Control */}
-        <div className="mt-4 pt-3 border-t border-[#F2EAE0] flex items-center justify-between gap-2">
-          <span className="text-xs text-[#786B59] whitespace-nowrap">
+        <div className="mt-2.5 pt-2 border-t border-[#F2EAE0] flex items-center justify-between gap-2">
+          <span className="text-xs font-medium text-[#786B59] whitespace-nowrap">
             {isSlotComplete
               ? `당첨 ${formatTicketNumber(winner.ticketNumber, config.maxNumber)}번`
               : isSlotRevealing
@@ -263,9 +255,9 @@ export const DrawStage: React.FC<DrawStageProps> = ({
                   ? '남은 추첨 가능 번호가 없습니다'
                   : `${slot.slotLabel} 건별 재추첨`
               }
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#5C4F3E] bg-[#FAF4E8] hover:bg-[#F1E4CD] hover:text-[#B91C1C] disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B91C1C]"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-[#5C4F3E] bg-[#FAF4E8] hover:bg-[#F1E4CD] hover:text-[#B91C1C] disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B91C1C]"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
+              <RotateCcw className="w-3 h-3" />
               <span>재추첨</span>
             </button>
           )}
@@ -279,8 +271,8 @@ export const DrawStage: React.FC<DrawStageProps> = ({
   const comboRemainingSlots = isComboMenu ? menu.slots.slice(3) : [];
 
   return (
-    <main className="relative z-10 max-w-[1360px] mx-auto px-4 sm:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
-      {/* Warm Christmas Event Banner & Menu Header */}
+    <main className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-8 py-3 sm:py-4 space-y-3 sm:space-y-4">
+      {/* Compact Warm Christmas Event Banner & Action Header */}
       <section className="relative overflow-hidden rounded-2xl border border-[#E5DAC5] bg-[#FFFDF8] shadow-sm">
         {!bannerLoadFailed && (
           <img
@@ -288,48 +280,43 @@ export const DrawStage: React.FC<DrawStageProps> = ({
             alt="따뜻한 겨울 크리스마스 마을 일러스트"
             referrerPolicy="no-referrer"
             onError={() => setBannerLoadFailed(true)}
-            className="absolute inset-0 w-full h-full object-cover object-center opacity-50 pointer-events-none select-none"
+            className="absolute inset-0 w-full h-full object-cover object-center opacity-45 pointer-events-none select-none"
           />
         )}
         <div
-          className="absolute inset-0 bg-gradient-to-r from-[#FFFDF9] via-[#FFFDF9]/92 to-[#FFFDF9]/75 pointer-events-none"
+          className="absolute inset-0 bg-gradient-to-r from-[#FFFDF9] via-[#FFFDF9]/94 to-[#FFFDF9]/78 pointer-events-none"
           aria-hidden="true"
         />
 
-        <div className="relative z-10 p-6 sm:p-8 lg:px-10 lg:py-9 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
-          <div className="space-y-2.5 max-w-2xl">
-            <p className="text-xs sm:text-sm font-semibold text-[#166534] tracking-wide">
-              수원시장애인종합복지관 가족 송년의 밤 · 함께 빛나는 어울림
-            </p>
-            <h1 className="font-serif-kr text-2xl sm:text-4xl font-bold text-[#1F1B16] tracking-tight text-balance">
-              {menu.title}
-            </h1>
-            <p className="text-sm sm:text-base text-[#574D40] leading-relaxed">
-              {menu.subtitle}
-            </p>
+        <div className="relative z-10 px-5 py-3.5 sm:px-7 sm:py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3.5">
+          <div className="space-y-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs font-semibold text-[#166534]">
+              <span>수원시장애인종합복지관 가족 송년의 밤 · 함께 빛나는 어울림</span>
+              <span className="text-[#B8AA93]" aria-hidden="true">|</span>
+              <span className="text-[#574D40] font-display-num">
+                대상 {formatTicketNumber(config.minNumber, config.maxNumber)}–
+                {formatTicketNumber(config.maxNumber, config.maxNumber)}번 · 남은 인원{' '}
+                <strong className="text-[#166534]">{eligibleCount}명</strong>
+              </span>
+            </div>
 
-            {/* Unboxed Clean Metadata */}
-            <div className="pt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs sm:text-sm text-[#6E6150] font-display-num">
-              <span>
-                참가 번호 {formatTicketNumber(config.minNumber, config.maxNumber)}번 –{' '}
-                {formatTicketNumber(config.maxNumber, config.maxNumber)}번
-              </span>
-              <span aria-hidden="true">·</span>
-              <span>
-                추첨 가능 <strong className="text-[#166534]">{eligibleCount}명</strong>
-              </span>
-              <span aria-hidden="true">·</span>
-              <span>중복 당첨 자동 제외</span>
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <h1 className="font-serif-kr text-xl sm:text-2xl lg:text-3xl font-bold text-[#1F1B16] tracking-tight">
+                {menu.title}
+              </h1>
+              <p className="text-xs sm:text-sm text-[#574D40] truncate">
+                {menu.subtitle}
+              </p>
             </div>
           </div>
 
-          {/* Primary Stage Action Bar */}
-          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 shrink-0">
+          {/* Primary Stage Action Bar (No Firebase UI on main stage) */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 shrink-0">
             <button
               type="button"
               onClick={onToggleFullscreen}
               title={isFullscreen ? '전체화면 종료 (Esc)' : 'PC 전체화면으로 보기'}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-[#DFD2BC] bg-white/90 text-[#4B4237] text-sm font-medium hover:bg-[#FAF4E8] transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B91C1C]"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#DFD2BC] bg-white/95 text-[#4B4237] text-xs sm:text-sm font-medium hover:bg-[#FAF4E8] transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B91C1C]"
             >
               {isFullscreen ? (
                 <Minimize2 className="w-4 h-4 text-[#B91C1C]" />
@@ -342,44 +329,22 @@ export const DrawStage: React.FC<DrawStageProps> = ({
             <button
               type="button"
               onClick={onToggleSound}
-              aria-label={soundEnabled ? '축하 음악 및 효과음 끄기' : '축하 음악 및 효과음 켜기'}
-              className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-[#DFD2BC] bg-white/90 text-[#4B4237] text-sm font-medium hover:bg-[#FAF4E8] transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B91C1C]"
+              aria-label={soundEnabled ? '폭죽 효과음 끄기' : '폭죽 효과음 켜기'}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#DFD2BC] bg-white/95 text-[#4B4237] text-xs sm:text-sm font-medium hover:bg-[#FAF4E8] transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B91C1C]"
             >
               {soundEnabled ? (
                 <Volume2 className="w-4 h-4 text-[#166534]" />
               ) : (
                 <VolumeX className="w-4 h-4 text-[#8D7F6B]" />
               )}
-              <span>{soundEnabled ? '음악 · 효과음 켜짐' : '음악 · 효과음 꺼짐'}</span>
+              <span>{soundEnabled ? '효과음 켜짐' : '효과음 꺼짐'}</span>
             </button>
-
-            {!isFirebaseConnected ? (
-              <button
-                type="button"
-                disabled={firebaseConnecting}
-                onClick={onConnectFirebase}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-[#DFD2BC] bg-white/90 text-[#4B4237] text-sm font-medium hover:bg-[#FAF4E8] disabled:opacity-60 transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B91C1C]"
-              >
-                <CloudOff className="w-4 h-4 text-[#8D7F6B]" />
-                <span>{firebaseConnecting ? '연결 중...' : 'Firebase 연결'}</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={onOpenAdmin}
-                title="Firebase 실시간 클라우드 동기화 중"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] text-[#166534] text-sm font-semibold hover:bg-[#DCFCE7] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-              >
-                <Cloud className="w-4 h-4" />
-                <span>Firebase 동기화됨</span>
-              </button>
-            )}
 
             {isAnyRevealing ? (
               <button
                 type="button"
                 onClick={onRevealAllNow}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#D97706] hover:bg-[#B45309] text-white text-base font-bold shadow-sm transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D97706]"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#D97706] hover:bg-[#B45309] text-white text-sm sm:text-base font-bold shadow-sm transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D97706]"
               >
                 <Zap className="w-4 h-4" />
                 <span>지금 바로 전체 공개</span>
@@ -389,27 +354,27 @@ export const DrawStage: React.FC<DrawStageProps> = ({
                 type="button"
                 disabled={insufficientPool}
                 onClick={() => onStartDrawMenu(menu)}
-                className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl bg-[#B91C1C] hover:bg-[#991B1B] disabled:bg-[#C7BBAE] disabled:cursor-not-allowed text-white text-base sm:text-lg font-bold shadow-sm transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B91C1C]"
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#B91C1C] hover:bg-[#991B1B] disabled:bg-[#C7BBAE] disabled:cursor-not-allowed text-white text-sm sm:text-base font-bold shadow-sm transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B91C1C]"
               >
-                <Gift className="w-5 h-5" />
+                <Gift className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>{menu.totalCount}명 추첨 시작하기</span>
               </button>
             ) : (
-              <div className="flex flex-wrap items-center gap-2.5">
+              <div className="flex flex-wrap items-center gap-2">
                 {!confirmRedrawAll ? (
                   <button
                     type="button"
                     disabled={eligibleCount < menu.totalCount}
                     onClick={() => setConfirmRedrawAll(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#DFD2BC] bg-white hover:bg-[#FAF4E8] disabled:opacity-45 disabled:cursor-not-allowed text-[#4B4237] text-sm font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[#DFD2BC] bg-white hover:bg-[#FAF4E8] disabled:opacity-45 disabled:cursor-not-allowed text-[#4B4237] text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                   >
-                    <RotateCcw className="w-4 h-4" />
-                    <span>이 메뉴 전체 다시 추첨</span>
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>전체 다시 추첨</span>
                   </button>
                 ) : (
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#FEF2F2] border border-[#FECACA]">
                     <span className="text-xs font-semibold text-[#991B1B] whitespace-nowrap">
-                      기존 번호 제외 후 다시 뽑을까요?
+                      다시 뽑을까요?
                     </span>
                     <button
                       type="button"
@@ -438,7 +403,7 @@ export const DrawStage: React.FC<DrawStageProps> = ({
                       setConfirmRedrawAll(false);
                       onSelectMenu(nextPendingMenu.id);
                     }}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#166534] hover:bg-[#14532D] text-white text-sm font-bold shadow-sm transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#166534] hover:bg-[#14532D] text-white text-xs sm:text-sm font-bold shadow-sm transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                   >
                     <span>다음: {nextPendingMenu.shortTitle}</span>
                     <ArrowRight className="w-4 h-4" />
@@ -450,35 +415,19 @@ export const DrawStage: React.FC<DrawStageProps> = ({
         </div>
       </section>
 
-      {/* Live Reveal Progress Banner, Celebration Banner, or Pool Warning */}
+      {/* Single Slim Contextual Status / Selection Strip (prevents pushing cards off-screen) */}
       {isAnyRevealing && getRevealStatusMessage() && (
         <div
           role="status"
           aria-live="polite"
-          className="flex items-center justify-between gap-4 px-5 py-3.5 rounded-xl bg-[#FFFBEB] border border-[#FDE68A] text-[#92400E]"
+          className="flex items-center justify-between gap-4 px-4 py-2.5 rounded-xl bg-[#FFFBEB] border border-[#FDE68A] text-[#92400E]"
         >
-          <div className="flex items-center gap-2.5 text-sm sm:text-base font-semibold">
+          <div className="flex items-center gap-2 text-sm font-semibold">
             <Sparkles className="w-4 h-4 text-[#D97706] shrink-0" />
             <span>{getRevealStatusMessage()}</span>
           </div>
-          <span className="text-xs sm:text-sm font-display-num text-[#B45309] whitespace-nowrap">
+          <span className="text-xs font-display-num text-[#B45309] whitespace-nowrap">
             일의 자리 → 십의 자리 → 백의 자리
-          </span>
-        </div>
-      )}
-
-      {showCelebrationBanner && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 rounded-xl bg-gradient-to-r from-[#FFFBEB] via-[#FEF3C7]/70 to-[#FFFDF8] border border-[#F59E0B]/50 text-[#92400E] shadow-sm"
-        >
-          <div className="flex items-center gap-2.5 text-sm sm:text-base font-bold">
-            <PartyPopper className="w-5 h-5 text-[#B91C1C] shrink-0" />
-            <span>축하합니다! 당첨 번호가 모두 공개되었습니다.</span>
-          </div>
-          <span className="text-xs sm:text-sm text-[#78350F]">
-            부재중인 번호가 있다면 체크박스로 선택해 한 번에 재추첨할 수 있습니다.
           </span>
         </div>
       )}
@@ -486,35 +435,48 @@ export const DrawStage: React.FC<DrawStageProps> = ({
       {insufficientPool && (
         <div
           role="alert"
-          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-[#991B1B]"
+          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-[#991B1B]"
         >
-          <div className="flex items-center gap-2.5 text-sm font-medium">
-            <AlertCircle className="w-5 h-5 shrink-0" />
+          <div className="flex items-center gap-2 text-xs sm:text-sm font-medium">
+            <AlertCircle className="w-4 h-4 shrink-0" />
             <span>
               추첨 가능한 인원({eligibleCount}명)이 필요한 당첨 인원({menu.totalCount}명)보다
-              적습니다. 관리자 모드에서 번호 범위를 늘리거나 초기화해 주세요.
+              적습니다.
             </span>
           </div>
           <button
             type="button"
             onClick={onOpenAdmin}
-            className="px-4 py-2 rounded-lg bg-[#B91C1C] text-white text-xs font-bold hover:bg-[#991B1B] whitespace-nowrap shrink-0 cursor-pointer self-start sm:self-auto"
+            className="px-3.5 py-1.5 rounded-lg bg-[#B91C1C] text-white text-xs font-bold hover:bg-[#991B1B] whitespace-nowrap shrink-0 cursor-pointer self-start sm:self-auto"
           >
             관리자 모드 열기
           </button>
         </div>
       )}
 
-      {/* Checkbox Selection Bar for Batch Selective Redraw */}
       {hasWinners && !isAnyRevealing && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3.5 rounded-xl bg-white border border-[#E8DFCE] shadow-xs">
-          <div className="flex flex-wrap items-center gap-3 text-sm">
-            <span className="font-semibold text-[#2E2720]">
-              {selectedSlotIds.length > 0
-                ? `${selectedSlotIds.length}개 경품 선택됨`
-                : '원하는 경품을 체크해 선택 항목만 재추첨할 수 있습니다'}
-            </span>
-            <div className="flex items-center gap-2 text-xs">
+        <div
+          className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-4 py-2.5 rounded-xl border transition-colors ${
+            showCelebrationState
+              ? 'bg-gradient-to-r from-[#FFFBEB] via-[#FEF3C7]/60 to-white border-[#F59E0B]/50'
+              : 'bg-white border-[#E8DFCE]'
+          }`}
+        >
+          <div className="flex flex-wrap items-center gap-2.5 text-xs sm:text-sm">
+            {showCelebrationState && selectedSlotIds.length === 0 ? (
+              <span className="inline-flex items-center gap-1.5 font-bold text-[#92400E]">
+                <PartyPopper className="w-4 h-4 text-[#B91C1C] shrink-0" />
+                <span>축하합니다! 당첨 번호가 공개되었습니다.</span>
+              </span>
+            ) : (
+              <span className="font-semibold text-[#2E2720]">
+                {selectedSlotIds.length > 0
+                  ? `${selectedSlotIds.length}개 경품 선택됨`
+                  : '체크박스를 선택해 원하는 항목만 재추첨할 수 있습니다'}
+              </span>
+            )}
+
+            <div className="flex items-center gap-1.5 text-xs">
               <button
                 type="button"
                 onClick={handleSelectAllSlots}
@@ -534,10 +496,10 @@ export const DrawStage: React.FC<DrawStageProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2.5 shrink-0">
             {insufficientForSelectedRedraw && (
               <span className="text-xs font-semibold text-[#B91C1C]">
-                남은 인원({eligibleCount}명)이 부족합니다
+                남은 인원({eligibleCount}명) 부족
               </span>
             )}
             <button
@@ -546,9 +508,9 @@ export const DrawStage: React.FC<DrawStageProps> = ({
                 selectedSlotIds.length === 0 || insufficientForSelectedRedraw
               }
               onClick={handleRedrawChecked}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#B91C1C] hover:bg-[#991B1B] disabled:bg-[#DFD5C5] disabled:text-[#8E8170] disabled:cursor-not-allowed text-white text-sm font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#B91C1C] hover:bg-[#991B1B] disabled:bg-[#DFD5C5] disabled:text-[#8E8170] disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
-              <RotateCcw className="w-4 h-4" />
+              <RotateCcw className="w-3.5 h-3.5" />
               <span>
                 {selectedSlotIds.length > 0
                   ? `선택한 ${selectedSlotIds.length}건 재추첨`
@@ -561,17 +523,17 @@ export const DrawStage: React.FC<DrawStageProps> = ({
 
       {/* Winner Grid */}
       {isComboMenu ? (
-        <section className="space-y-5" aria-label="특별 경품 추첨 결과">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+        <section className="space-y-3 sm:space-y-4" aria-label="특별 경품 추첨 결과">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
             {comboFeaturedSlots.map((slot) => renderSlotCard(slot, 'lg'))}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {comboRemainingSlots.map((slot) => renderSlotCard(slot, 'md'))}
           </div>
         </section>
       ) : (
         <section
-          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-5"
+          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4"
           aria-label={`${menu.title} 추첨 결과`}
         >
           {menu.slots.map((slot) => renderSlotCard(slot, 'md'))}
