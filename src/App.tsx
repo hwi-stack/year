@@ -32,7 +32,7 @@ import {
 import {
   createRecordId,
   getDigitLength,
-  getEligibleNumbers,
+  getEligibleNumbersForMenu,
   INITIAL_STATE,
   pickRandomNumbers,
 } from './utils/raffleEngine';
@@ -69,7 +69,7 @@ function loadSavedState(): RaffleState {
 
 export default function App() {
   const [raffleState, setRaffleState] = useState<RaffleState>(loadSavedState);
-  const [activeMenuId, setActiveMenuId] = useState<PrizeMenuId>('combo');
+  const [activeMenuId, setActiveMenuId] = useState<PrizeMenuId>('necessities_1');
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -309,8 +309,13 @@ export default function App() {
   const activeMenu = PRIZE_MENU_MAP[activeMenuId];
 
   const eligibleNumbers = useMemo(
-    () => getEligibleNumbers(raffleState.config, raffleState.winners),
-    [raffleState.config, raffleState.winners]
+    () =>
+      getEligibleNumbersForMenu(
+        raffleState.config,
+        raffleState.winners,
+        activeMenuId
+      ),
+    [raffleState.config, raffleState.winners, activeMenuId]
   );
 
   const completedMenuIds = useMemo(() => {
@@ -340,7 +345,11 @@ export default function App() {
       const oldMenuWinners = raffleState.winners.filter(
         (w) => w.menuId === menu.id
       );
-      const pool = getEligibleNumbers(raffleState.config, otherWinners);
+      const pool = getEligibleNumbersForMenu(
+        raffleState.config,
+        otherWinners,
+        menu.id
+      );
 
       if (pool.length < menu.totalCount) return;
 
@@ -423,9 +432,11 @@ export default function App() {
       );
 
       const replacedTicketNumbers = replacedWinners.map((w) => w.ticketNumber);
-      const pool = getEligibleNumbers(
+      const menuId = targetSlots[0].menuId;
+      const pool = getEligibleNumbersForMenu(
         raffleState.config,
         remainingWinners,
+        menuId,
         replacedTicketNumbers
       );
 

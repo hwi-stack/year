@@ -1,4 +1,9 @@
-import { RaffleConfig, RaffleState, WinnerRecord } from '../types/raffle';
+import {
+  PrizeMenuId,
+  RaffleConfig,
+  RaffleState,
+  WinnerRecord,
+} from '../types/raffle';
 
 export const DEFAULT_CONFIG: RaffleConfig = {
   minNumber: 1,
@@ -39,6 +44,24 @@ export function getEligibleNumbers(
     }
   }
   return eligible;
+}
+
+/**
+ * 생필품 1차·2차·문화상품권은 서로 중복 당첨을 방지하고,
+ * 마지막 순서인 특별 경품(combo)은 기존 당첨자를 무시하고 전체 번호(해당 회차 내 중복만 방지)에서 추첨합니다.
+ */
+export function getEligibleNumbersForMenu(
+  config: RaffleConfig,
+  activeWinners: WinnerRecord[],
+  menuId: PrizeMenuId,
+  extraExclude: number[] = []
+): number[] {
+  const relevantWinners =
+    menuId === 'combo'
+      ? activeWinners.filter((w) => w.menuId === 'combo')
+      : activeWinners.filter((w) => w.menuId !== 'combo');
+
+  return getEligibleNumbers(config, relevantWinners, extraExclude);
 }
 
 export function pickRandomNumbers(eligible: number[], count: number): number[] {

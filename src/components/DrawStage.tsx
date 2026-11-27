@@ -295,7 +295,8 @@ export const DrawStage: React.FC<DrawStageProps> = ({
               <span className="text-[#B8AA93]" aria-hidden="true">|</span>
               <span className="text-[#574D40] font-display-num">
                 대상 {formatTicketNumber(config.minNumber, config.maxNumber)}–
-                {formatTicketNumber(config.maxNumber, config.maxNumber)}번 · 남은 인원{' '}
+                {formatTicketNumber(config.maxNumber, config.maxNumber)}번 ·{' '}
+                {menu.id === 'combo' ? '기존 당첨자 포함' : '중복 당첨 제외'} · 가능{' '}
                 <strong className="text-[#166534]">{eligibleCount}명</strong>
               </span>
             </div>

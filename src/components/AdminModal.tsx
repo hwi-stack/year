@@ -81,8 +81,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   }, [isOpen, config.minNumber, config.maxNumber]);
 
   const winnerMapByTicket = useMemo(() => {
-    const map = new Map<number, WinnerRecord>();
-    winners.forEach((w) => map.set(w.ticketNumber, w));
+    const map = new Map<number, WinnerRecord[]>();
+    winners.forEach((w) => {
+      const list = map.get(w.ticketNumber) ?? [];
+      list.push(w);
+      map.set(w.ticketNumber, list);
+    });
     return map;
   }, [winners]);
 
@@ -133,10 +137,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const handleDownloadCsv = () => {
     const sorted = [...winners].sort((a, b) => {
       const orderMap: Record<PrizeMenuId, number> = {
-        combo: 1,
-        necessities_1: 2,
-        necessities_2: 3,
-        voucher: 4,
+        necessities_1: 1,
+        necessities_2: 2,
+        voucher: 3,
+        combo: 4,
       };
       if (orderMap[a.menuId] !== orderMap[b.menuId]) {
         return orderMap[a.menuId] - orderMap[b.menuId];
@@ -407,15 +411,18 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
                 <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-1.5 max-h-[340px] overflow-y-auto pr-1">
                   {allRangeNumbers.map((num) => {
-                    const winner = winnerMapByTicket.get(num);
+                    const ticketWinners = winnerMapByTicket.get(num);
                     const isExcluded = excludedSet.has(num);
                     const label = formatTicketNumber(num, config.maxNumber);
 
-                    if (winner) {
+                    if (ticketWinners && ticketWinners.length > 0) {
+                      const prizeSummary = ticketWinners
+                        .map((w) => w.slotLabel)
+                        .join(', ');
                       return (
                         <div
                           key={num}
-                          title={`${label}번 - 당첨 (${winner.slotLabel})`}
+                          title={`${label}번 - 당첨 (${prizeSummary})`}
                           className="py-1.5 rounded-lg bg-[#DCFCE7] border border-[#86EFAC] text-[#14532D] text-xs font-display-num font-bold text-center select-none"
                         >
                           {label}
